@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() => runApp(MyApp());
 
@@ -28,6 +30,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final databaseReference = FirebaseDatabase.instance.reference();
+  FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+  GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final arquiChild = FirebaseDatabase.instance.reference().child("ARQUI");
 
@@ -40,8 +44,54 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     arquiChild.onChildChanged.listen(_onEntryChangedShop);
+    firebaseCloudMessagingListeners();
   }
 
+  void firebaseCloudMessagingListeners() {
+    if (Platform.isIOS) iOSPermission();
+
+    _firebaseMessaging.getToken().then((token) {
+      print("token");
+      print(token);
+    });
+
+    _firebaseMessaging.configure(
+      onMessage: (Map<String, dynamic> message) async {
+        print('on message $message');
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            content: ListTile(
+              title: Text(message['notification']['title']),
+              subtitle: Text(message['notification']['body']),
+            ),
+            actions: <Widget>[
+              FlatButton(
+                child: Text('Ok'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      },
+      onResume: (Map<String, dynamic> message) async {
+        print('on resume $message');
+      },
+      onLaunch: (Map<String, dynamic> message) async {
+        print('on launch $message');
+      },
+    );
+  }
+
+  void iOSPermission() {
+    _firebaseMessaging.requestNotificationPermissions(
+        IosNotificationSettings(sound: true, badge: true, alert: true));
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings) {
+      print("Settings registered: $settings");
+    });
+  }
 
   void cambiarAlarma() {
     databaseReference.child('ARQUI').update({"estadoAlarma": alarma});
@@ -111,6 +161,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _onEntryChangedShop(Event event) {
     setState(() {
+      print(event.snapshot.key);
+      print(event.snapshot.value);
+
       if (event.snapshot.key == "estadoAlarma") alarma = event.snapshot.value;
 
       if (event.snapshot.key == "abrirPorton") porton = event.snapshot.value;
