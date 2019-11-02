@@ -31,7 +31,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final databaseReference = FirebaseDatabase.instance.reference();
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
-  GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final arquiChild = FirebaseDatabase.instance.reference().child("ARQUI");
 
@@ -47,8 +46,17 @@ class _MyHomePageState extends State<MyHomePage> {
     firebaseCloudMessagingListeners();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+
+    _firebaseMessaging.unsubscribeFromTopic("alarma-ntf");
+  }
+
   void firebaseCloudMessagingListeners() {
     if (Platform.isIOS) iOSPermission();
+
+    _firebaseMessaging.subscribeToTopic("alarma-ntf");
 
     _firebaseMessaging.getToken().then((token) {
       print("token");
