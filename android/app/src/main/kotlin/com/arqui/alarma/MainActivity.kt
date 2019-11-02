@@ -1,4 +1,4 @@
-package com.example.arqui_alarma
+package com.arqui.alarma
 
 import android.os.Bundle
 
